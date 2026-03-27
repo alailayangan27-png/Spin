@@ -1,64 +1,108 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Crash Game</title>
+  <title>Crash Game PRO</title>
   <style>
     body {
-      text-align: center;
-      font-family: Arial;
-      background: #111;
+      background: #0f172a;
       color: white;
+      font-family: Arial;
+      text-align: center;
     }
 
     h1 {
       font-size: 50px;
+      margin: 10px;
+    }
+
+    canvas {
+      background: #020617;
+      border: 2px solid #334155;
+      margin-top: 20px;
     }
 
     button {
       padding: 10px 20px;
-      font-size: 18px;
       margin: 10px;
+      font-size: 16px;
       cursor: pointer;
+      border: none;
+      border-radius: 5px;
     }
+
+    .start { background: #22c55e; }
+    .cash { background: #f59e0b; }
+
   </style>
 </head>
 <body>
 
-<h2>💥 Crash Game</h2>
-<h1 id="multiplier">1.00x</h1>
+<h2>💥 Crash Game PRO</h2>
+<h1 id="multi">1.00x</h1>
 
-<button onclick="startGame()">START</button>
-<button onclick="cashOut()">CASH OUT</button>
+<canvas id="graph" width="300" height="200"></canvas>
+
+<br>
+
+<button class="start" onclick="startGame()">START</button>
+<button class="cash" onclick="cashOut()">CASH OUT</button>
 
 <h3 id="result"></h3>
+<h3 id="balance">Balance: 100</h3>
 
 <script>
 let multi = 1;
 let running = false;
-let crashed = false;
 let crashPoint = 0;
+let balance = 100;
+let bet = 10;
+
+let ctx = document.getElementById("graph").getContext("2d");
+let x = 0;
+
+function drawGraph() {
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#22c55e";
+
+  ctx.lineTo(x, 200 - multi * 20);
+  ctx.stroke();
+
+  x += 2;
+}
+
+function resetGraph() {
+  ctx.clearRect(0, 0, 300, 200);
+  ctx.beginPath();
+  ctx.moveTo(0, 200);
+  x = 0;
+}
 
 function startGame() {
-  if (running) return;
+  if (running || balance < bet) return;
+
+  balance -= bet;
+  updateBalance();
 
   multi = 1;
-  crashed = false;
   running = true;
 
-  crashPoint = (Math.random() * 4 + 1).toFixed(2); // 1x - 5x
+  crashPoint = (Math.random() * 4 + 1).toFixed(2);
+
+  resetGraph();
 
   const interval = setInterval(() => {
     if (!running) return;
 
-    multi += 0.01;
-    document.getElementById("multiplier").innerText =
+    multi += 0.02;
+    document.getElementById("multi").innerText =
       multi.toFixed(2) + "x";
 
+    drawGraph();
+
     if (multi >= crashPoint) {
-      document.getElementById("multiplier").innerText = "💥 CRASH!";
-      document.getElementById("result").innerText = "Kamu kalah!";
+      document.getElementById("multi").innerText = "💥 CRASH!";
+      document.getElementById("result").innerText = "Kalah!";
       running = false;
-      crashed = true;
       clearInterval(interval);
     }
 
@@ -66,12 +110,21 @@ function startGame() {
 }
 
 function cashOut() {
-  if (!running || crashed) return;
+  if (!running) return;
+
+  let win = bet * multi;
+  balance += Math.floor(win);
 
   document.getElementById("result").innerText =
-    "Cash out di " + multi.toFixed(2) + "x 🎉";
+    "Menang: " + Math.floor(win);
 
   running = false;
+  updateBalance();
+}
+
+function updateBalance() {
+  document.getElementById("balance").innerText =
+    "Balance: " + balance;
 }
 </script>
 

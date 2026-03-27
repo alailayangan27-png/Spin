@@ -1,149 +1,126 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Ultimate Mini Game</title>
+  <title>Crash Game PRO+</title>
   <style>
     body {
-      background: #0f172a;
+      background: #020617;
       color: white;
       font-family: Arial;
       text-align: center;
     }
 
-    h1 { margin: 10px; }
-
-    button {
-      padding: 10px 20px;
+    h1 {
+      font-size: 48px;
       margin: 10px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    .spin { background: #22c55e; }
-    .start { background: #3b82f6; }
-    .cash { background: #f59e0b; }
-
-    #wheel {
-      width: 200px;
-      height: 200px;
-      border-radius: 50%;
-      margin: 20px auto;
-      border: 5px solid white;
-
-      background: conic-gradient(
-        red 0deg 72deg,
-        blue 72deg 144deg,
-        green 144deg 216deg,
-        orange 216deg 288deg,
-        purple 288deg 360deg
-      );
-
-      transition: transform 3s ease-out;
     }
 
     canvas {
-      background: #020617;
+      background: #000;
       border: 2px solid #334155;
+      margin-top: 20px;
     }
+
+    input, button {
+      padding: 8px;
+      margin: 5px;
+      border-radius: 5px;
+      border: none;
+    }
+
+    .start { background: #22c55e; }
+    .cash { background: #f59e0b; }
+
   </style>
 </head>
 <body>
 
-<h1>🎮 Ultimate Game</h1>
+<h2>💥 Crash Game PRO+</h2>
 
-<h2>Balance: <span id="balance">100</span></h2>
-
-<!-- SPIN -->
-<h3>🎰 Spin</h3>
-<div id="wheel"></div>
-<button class="spin" onclick="spin()">SPIN</button>
-<p id="spinResult"></p>
-
-<hr>
-
-<!-- CRASH -->
-<h3>💥 Crash</h3>
 <h1 id="multi">1.00x</h1>
-<canvas id="graph" width="300" height="200"></canvas><br>
 
-<button class="start" onclick="startCrash()">START</button>
+<canvas id="graph" width="320" height="200"></canvas><br>
+
+<input type="number" id="bet" value="10" placeholder="Bet">
+<input type="number" id="auto" placeholder="Auto cashout (opsional)">
+
+<br>
+
+<button class="start" onclick="startGame()">START</button>
 <button class="cash" onclick="cashOut()">CASH OUT</button>
 
-<p id="crashResult"></p>
+<h3 id="result"></h3>
+<h3 id="balance"></h3>
 
 <script>
-let balance = 100;
+let balance = localStorage.getItem("balance") || 100;
+balance = parseInt(balance);
 
-// ===== SPIN =====
-const rewards = [10, 0, 50, 20, 5];
-
-function spin() {
-  if (balance < 5) return;
-
-  balance -= 5;
-  updateBalance();
-
-  let index = Math.floor(Math.random() * rewards.length);
-  let degree = 360 * 5 + index * (360 / rewards.length);
-
-  document.getElementById("wheel").style.transform =
-    `rotate(${degree}deg)`;
-
-  setTimeout(() => {
-    let reward = rewards[index];
-    balance += reward;
-
-    document.getElementById("spinResult").innerText =
-      "Dapat: " + reward;
-
-    updateBalance();
-  }, 3000);
-}
-
-// ===== CRASH =====
 let multi = 1;
 let running = false;
 let crashPoint = 0;
-let bet = 10;
+let interval;
 
-let ctx = document.getElementById("graph").getContext("2d");
-let x = 0;
+const ctx = document.getElementById("graph").getContext("2d");
 
-function resetGraph() {
-  ctx.clearRect(0, 0, 300, 200);
-  ctx.beginPath();
-  ctx.moveTo(0, 200);
-  x = 0;
+function updateBalance() {
+  document.getElementById("balance").innerText =
+    "Balance: " + balance;
+  localStorage.setItem("balance", balance);
 }
 
-function startCrash() {
-  if (running || balance < bet) return;
+updateBalance();
+
+function resetGraph() {
+  ctx.clearRect(0, 0, 320, 200);
+  ctx.beginPath();
+  ctx.moveTo(0, 200);
+}
+
+function startGame() {
+  if (running) return;
+
+  let bet = parseInt(document.getElementById("bet").value);
+  if (balance < bet) return alert("Saldo kurang");
 
   balance -= bet;
   updateBalance();
 
   multi = 1;
   running = true;
-  crashPoint = (Math.random() * 4 + 1).toFixed(2);
+
+  crashPoint = Math.random() * 5 + 1; // 1x - 6x
 
   resetGraph();
 
-  let interval = setInterval(() => {
+  let x = 0;
+
+  interval = setInterval(() => {
     if (!running) return;
 
-    multi += 0.02;
+    // curve growth (lebih realistis)
+    multi *= 1.01;
+
     document.getElementById("multi").innerText =
       multi.toFixed(2) + "x";
 
-    ctx.lineTo(x, 200 - multi * 20);
+    // grafik smooth
+    ctx.lineTo(x, 200 - multi * 15);
     ctx.strokeStyle = "#22c55e";
     ctx.stroke();
+
     x += 2;
 
+    // auto cashout
+    let auto = parseFloat(document.getElementById("auto").value);
+    if (auto && multi >= auto) {
+      cashOut();
+    }
+
+    // crash
     if (multi >= crashPoint) {
       document.getElementById("multi").innerText = "💥 CRASH!";
-      document.getElementById("crashResult").innerText = "Kalah!";
+      document.getElementById("result").innerText = "Kalah!";
       running = false;
       clearInterval(interval);
     }
@@ -154,18 +131,17 @@ function startCrash() {
 function cashOut() {
   if (!running) return;
 
+  let bet = parseInt(document.getElementById("bet").value);
   let win = Math.floor(bet * multi);
-  balance += win;
 
-  document.getElementById("crashResult").innerText =
-    "Menang: " + win;
+  balance += win;
+  updateBalance();
+
+  document.getElementById("result").innerText =
+    "Menang: " + win + " (" + multi.toFixed(2) + "x)";
 
   running = false;
-  updateBalance();
-}
-
-function updateBalance() {
-  document.getElementById("balance").innerText = balance;
+  clearInterval(interval);
 }
 </script>
 

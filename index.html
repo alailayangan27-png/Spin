@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Spin Game</title>
+  <style>
+    #wheel {
+      width: 200px;
+      height: 200px;
+      border: 5px solid black;
+      border-radius: 50%;
+      position: relative;
+      margin: 50px auto;
+      transition: transform 3s ease-out;
+    }
+
+    button {
+      display: block;
+      margin: auto;
+      padding: 10px 20px;
+    }
+  </style>
+</head>
+<body>
+
+<h2 style="text-align:center;">🎰 Spin Wheel</h2>
+
+<div id="wheel"></div>
+
+<button onclick="spin()">SPIN</button>
+
+<h3 id="result" style="text-align:center;"></h3>
+
+<script>
+const rewards = ["💰 10", "❌ Zonk", "🔥 50", "🎁 20", "💀 0"];
+
+function spin() {
+  const wheel = document.getElementById("wheel");
+  const resultText = document.getElementById("result");
+
+  const randomIndex = Math.floor(Math.random() * rewards.length);
+  const degree = 360 * 5 + (randomIndex * (360 / rewards.length));
+
+  wheel.style.transform = `rotate(${degree}deg)`;
+
+  setTimeout(() => {
+    resultText.innerText = "Hasil: " + rewards[randomIndex];
+  }, 3000);
+}
+</script>
+
+</body>
+</html>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Crash Game PRO+</title>
+  <title>Crash Game X</title>
   <style>
     body {
       background: #020617;
@@ -11,14 +11,13 @@
     }
 
     h1 {
-      font-size: 48px;
+      font-size: 50px;
       margin: 10px;
     }
 
     canvas {
       background: #000;
       border: 2px solid #334155;
-      margin-top: 20px;
     }
 
     input, button {
@@ -31,18 +30,22 @@
     .start { background: #22c55e; }
     .cash { background: #f59e0b; }
 
+    #players, #history {
+      font-size: 14px;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
 
-<h2>💥 Crash Game PRO+</h2>
+<h2>💥 Crash Game X</h2>
 
 <h1 id="multi">1.00x</h1>
 
 <canvas id="graph" width="320" height="200"></canvas><br>
 
-<input type="number" id="bet" value="10" placeholder="Bet">
-<input type="number" id="auto" placeholder="Auto cashout (opsional)">
+<input type="number" id="bet" value="10">
+<input type="number" id="auto" placeholder="Auto cashout">
 
 <br>
 
@@ -52,6 +55,9 @@
 <h3 id="result"></h3>
 <h3 id="balance"></h3>
 
+<div id="players"></div>
+<div id="history"></div>
+
 <script>
 let balance = localStorage.getItem("balance") || 100;
 balance = parseInt(balance);
@@ -60,6 +66,7 @@ let multi = 1;
 let running = false;
 let crashPoint = 0;
 let interval;
+let history = [];
 
 const ctx = document.getElementById("graph").getContext("2d");
 
@@ -68,13 +75,18 @@ function updateBalance() {
     "Balance: " + balance;
   localStorage.setItem("balance", balance);
 }
-
 updateBalance();
 
 function resetGraph() {
   ctx.clearRect(0, 0, 320, 200);
   ctx.beginPath();
   ctx.moveTo(0, 200);
+}
+
+function playTick() {
+  let audio = new Audio("https://www.soundjay.com/button/beep-07.wav");
+  audio.volume = 0.1;
+  audio.play();
 }
 
 function startGame() {
@@ -89,43 +101,53 @@ function startGame() {
   multi = 1;
   running = true;
 
-  crashPoint = Math.random() * 5 + 1; // 1x - 6x
+  crashPoint = Math.random() * 5 + 1;
 
   resetGraph();
+  document.getElementById("result").innerText = "";
 
   let x = 0;
 
   interval = setInterval(() => {
     if (!running) return;
 
-    // curve growth (lebih realistis)
-    multi *= 1.01;
+    multi *= 1.02;
+
+    let color = multi < 2 ? "#22c55e" :
+                multi < 3 ? "#facc15" :
+                "#ef4444";
 
     document.getElementById("multi").innerText =
       multi.toFixed(2) + "x";
+    document.getElementById("multi").style.color = color;
 
-    // grafik smooth
+    ctx.strokeStyle = color;
     ctx.lineTo(x, 200 - multi * 15);
-    ctx.strokeStyle = "#22c55e";
     ctx.stroke();
-
     x += 2;
+
+    playTick();
 
     // auto cashout
     let auto = parseFloat(document.getElementById("auto").value);
-    if (auto && multi >= auto) {
-      cashOut();
-    }
+    if (auto && multi >= auto) cashOut();
 
     // crash
     if (multi >= crashPoint) {
-      document.getElementById("multi").innerText = "💥 CRASH!";
-      document.getElementById("result").innerText = "Kalah!";
-      running = false;
+      crash();
       clearInterval(interval);
     }
 
-  }, 50);
+  }, 60);
+}
+
+function crash() {
+  document.getElementById("multi").innerText = "💥 CRASH!";
+  document.getElementById("result").innerText = "Kalah!";
+  running = false;
+
+  history.unshift(crashPoint.toFixed(2) + "x");
+  updateHistory();
 }
 
 function cashOut() {
@@ -143,6 +165,22 @@ function cashOut() {
   running = false;
   clearInterval(interval);
 }
+
+function updateHistory() {
+  document.getElementById("history").innerText =
+    "History: " + history.slice(0, 10).join(" | ");
+}
+
+// fake players
+const names = ["Rizky","Andi","Budi","Doni","Fajar","Rama"];
+
+setInterval(() => {
+  let name = names[Math.floor(Math.random()*names.length)];
+  let val = (Math.random()*3+1).toFixed(2);
+
+  document.getElementById("players").innerText =
+    name + " cash out di " + val + "x";
+}, 2000);
 </script>
 
 </body>

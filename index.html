@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Crash Game X</title>
+  <title>Crash Leaderboard</title>
   <style>
     body {
       background: #020617;
@@ -10,14 +10,11 @@
       text-align: center;
     }
 
-    h1 {
-      font-size: 50px;
-      margin: 10px;
-    }
+    h1 { font-size: 50px; }
 
     canvas {
-      background: #000;
-      border: 2px solid #334155;
+      background: black;
+      border: 2px solid #444;
     }
 
     input, button {
@@ -27,18 +24,22 @@
       border: none;
     }
 
-    .start { background: #22c55e; }
+    .start { background: #16a34a; }
     .cash { background: #f59e0b; }
 
-    #players, #history {
-      font-size: 14px;
-      margin-top: 10px;
+    #leaderboard {
+      margin-top: 20px;
+      text-align: left;
+      display: inline-block;
     }
   </style>
 </head>
 <body>
 
-<h2>💥 Crash Game X</h2>
+<h2>💥 Crash Game Leaderboard</h2>
+
+<input id="username" placeholder="Username">
+<button onclick="saveUser()">Masuk</button>
 
 <h1 id="multi">1.00x</h1>
 
@@ -55,38 +56,38 @@
 <h3 id="result"></h3>
 <h3 id="balance"></h3>
 
-<div id="players"></div>
-<div id="history"></div>
+<div id="leaderboard"></div>
 
 <script>
-let balance = localStorage.getItem("balance") || 100;
-balance = parseInt(balance);
+let username = localStorage.getItem("username") || "Guest";
+let balance = parseInt(localStorage.getItem("balance") || 100);
+let leaderboard = JSON.parse(localStorage.getItem("leaderboard") || "[]");
 
 let multi = 1;
 let running = false;
 let crashPoint = 0;
 let interval;
-let history = [];
 
 const ctx = document.getElementById("graph").getContext("2d");
+
+updateBalance();
+updateLeaderboard();
+
+function saveUser() {
+  username = document.getElementById("username").value || "Guest";
+  localStorage.setItem("username", username);
+}
 
 function updateBalance() {
   document.getElementById("balance").innerText =
     "Balance: " + balance;
   localStorage.setItem("balance", balance);
 }
-updateBalance();
 
 function resetGraph() {
   ctx.clearRect(0, 0, 320, 200);
   ctx.beginPath();
   ctx.moveTo(0, 200);
-}
-
-function playTick() {
-  let audio = new Audio("https://www.soundjay.com/button/beep-07.wav");
-  audio.volume = 0.1;
-  audio.play();
 }
 
 function startGame() {
@@ -112,27 +113,17 @@ function startGame() {
     if (!running) return;
 
     multi *= 1.02;
-
-    let color = multi < 2 ? "#22c55e" :
-                multi < 3 ? "#facc15" :
-                "#ef4444";
-
     document.getElementById("multi").innerText =
       multi.toFixed(2) + "x";
-    document.getElementById("multi").style.color = color;
 
-    ctx.strokeStyle = color;
     ctx.lineTo(x, 200 - multi * 15);
+    ctx.strokeStyle = "#22c55e";
     ctx.stroke();
     x += 2;
 
-    playTick();
-
-    // auto cashout
     let auto = parseFloat(document.getElementById("auto").value);
     if (auto && multi >= auto) cashOut();
 
-    // crash
     if (multi >= crashPoint) {
       crash();
       clearInterval(interval);
@@ -145,9 +136,6 @@ function crash() {
   document.getElementById("multi").innerText = "💥 CRASH!";
   document.getElementById("result").innerText = "Kalah!";
   running = false;
-
-  history.unshift(crashPoint.toFixed(2) + "x");
-  updateHistory();
 }
 
 function cashOut() {
@@ -160,27 +148,32 @@ function cashOut() {
   updateBalance();
 
   document.getElementById("result").innerText =
-    "Menang: " + win + " (" + multi.toFixed(2) + "x)";
+    "Menang: " + win;
 
   running = false;
   clearInterval(interval);
+
+  saveScore(win);
 }
 
-function updateHistory() {
-  document.getElementById("history").innerText =
-    "History: " + history.slice(0, 10).join(" | ");
+function saveScore(win) {
+  leaderboard.push({ name: username, score: win });
+  leaderboard.sort((a,b)=>b.score-a.score);
+  leaderboard = leaderboard.slice(0,10);
+
+  localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+  updateLeaderboard();
 }
 
-// fake players
-const names = ["Rizky","Andi","Budi","Doni","Fajar","Rama"];
+function updateLeaderboard() {
+  let html = "<h3>🏆 Leaderboard</h3>";
 
-setInterval(() => {
-  let name = names[Math.floor(Math.random()*names.length)];
-  let val = (Math.random()*3+1).toFixed(2);
+  leaderboard.forEach((p,i)=>{
+    html += `<p>${i+1}. ${p.name} - ${p.score}</p>`;
+  });
 
-  document.getElementById("players").innerText =
-    name + " cash out di " + val + "x";
-}, 2000);
+  document.getElementById("leaderboard").innerHTML = html;
+}
 </script>
 
 </body>

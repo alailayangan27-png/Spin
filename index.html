@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trading Battle Pro</title>
+<title>Trading Battle Live</title>
 
 <style>
 body {
@@ -12,7 +12,6 @@ body {
   color:white;
 }
 
-/* HEADER */
 .header {
   display:flex;
   justify-content:space-between;
@@ -20,21 +19,18 @@ body {
   background:#111;
 }
 
-/* PRICE */
 #price {
   text-align:center;
   font-size:40px;
   margin:10px;
 }
 
-/* GRAPH */
 canvas {
-  background:black;
   width:100%;
   height:200px;
+  background:black;
 }
 
-/* PLAYERS */
 .players {
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -55,7 +51,6 @@ input {
   border-radius:5px;
 }
 
-/* CONTROL */
 .controls {
   text-align:center;
   padding:10px;
@@ -66,20 +61,16 @@ button {
   margin:5px;
   border:none;
   border-radius:5px;
-  cursor:pointer;
 }
 
 .start { background:#22c55e; }
 
-/* TIMER */
 #timer {
   font-size:30px;
-  text-align:center;
 }
 
 .result {
   text-align:center;
-  font-size:18px;
 }
 </style>
 </head>
@@ -87,11 +78,11 @@ button {
 <body>
 
 <div class="header">
-  <div>📊 Trading Battle</div>
+  <div>📊 Trading Battle LIVE</div>
   <div id="timer">30</div>
 </div>
 
-<div id="price">$30000</div>
+<div id="price">$0</div>
 
 <canvas id="chart"></canvas>
 
@@ -109,17 +100,42 @@ button {
 <div class="result" id="result"></div>
 
 <script>
-let price = 30000;
-let running = false;
-let time = 30;
+// ===== REAL PRICE (BINANCE WS) =====
+let price = 0;
 
+let ws = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@trade");
+
+ws.onmessage = (event) => {
+  let data = JSON.parse(event.data);
+  price = parseFloat(data.p);
+
+  document.getElementById("price").innerText =
+    "$" + price.toFixed(2);
+
+  updateChart(price);
+};
+
+// ===== CHART =====
 const ctx = document.getElementById("chart").getContext("2d");
+let x = 0;
 
-function drawChart(x, y) {
-  ctx.lineTo(x, 200 - y);
+function updateChart(p) {
+  ctx.lineTo(x, 200 - (p % 1000)/5);
   ctx.strokeStyle = "#22c55e";
   ctx.stroke();
+  x += 2;
+
+  if (x > 400) {
+    ctx.clearRect(0,0,400,200);
+    ctx.beginPath();
+    ctx.moveTo(0,100);
+    x = 0;
+  }
 }
+
+// ===== GAME =====
+let running = false;
+let time = 30;
 
 function startGame() {
   if (running) return;
@@ -128,26 +144,6 @@ function startGame() {
   time = 30;
   document.getElementById("result").innerText = "";
 
-  ctx.clearRect(0,0,500,200);
-  ctx.beginPath();
-  ctx.moveTo(0,100);
-
-  let x = 0;
-
-  let priceInterval = setInterval(() => {
-    if (!running) return;
-
-    // simulasi harga
-    price += Math.floor(Math.random()*200 - 100);
-
-    document.getElementById("price").innerText =
-      "$" + price;
-
-    drawChart(x, price/200);
-    x += 5;
-
-  }, 500);
-
   let timerInterval = setInterval(() => {
     time--;
     document.getElementById("timer").innerText = time;
@@ -155,7 +151,6 @@ function startGame() {
     if (time <= 0) {
       running = false;
       clearInterval(timerInterval);
-      clearInterval(priceInterval);
       endGame();
     }
   }, 1000);
@@ -165,10 +160,10 @@ function endGame() {
   let finalPrice = price;
 
   let players = [
-    {name:"P1", val:parseInt(p1.value)},
-    {name:"P2", val:parseInt(p2.value)},
-    {name:"P3", val:parseInt(p3.value)},
-    {name:"P4", val:parseInt(p4.value)}
+    {name:"P1", val:parseFloat(p1.value)},
+    {name:"P2", val:parseFloat(p2.value)},
+    {name:"P3", val:parseFloat(p3.value)},
+    {name:"P4", val:parseFloat(p4.value)}
   ];
 
   players.forEach(p=>{
@@ -180,7 +175,7 @@ function endGame() {
   let winner = players[0];
 
   document.getElementById("result").innerText =
-    "Final Price: $" + finalPrice +
+    "Final: $" + finalPrice.toFixed(2) +
     " | Winner: " + winner.name;
 }
 </script>

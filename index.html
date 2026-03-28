@@ -2,178 +2,108 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Space Crash Premium</title>
+<title>Space Crash Ultra</title>
 
 <style>
 body {
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: black;
-  color: white;
-  overflow: hidden;
+  margin:0;
+  font-family: Arial;
+  background:black;
+  color:white;
+  overflow:hidden;
 }
 
-/* BACKGROUND STAR */
-canvas.bg {
-  position: fixed;
-  top:0;
-  left:0;
-  z-index: -1;
-}
-
-/* TOPBAR */
+/* TOP */
 .topbar {
   display:flex;
   justify-content:space-between;
-  padding:15px;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(10px);
+  padding:10px;
+  background:rgba(0,0,0,0.6);
 }
 
-/* MULTIPLIER */
+/* MULTI */
 #multi {
   text-align:center;
-  font-size:70px;
-  margin-top:10px;
-  text-shadow:0 0 30px cyan;
+  font-size:60px;
+  text-shadow:0 0 20px cyan;
 }
 
 /* GAME */
-.game {
+.wrap {
   display:flex;
-  flex-direction:column;
-  align-items:center;
-}
-
-.graph-wrap {
-  position:relative;
+  justify-content:center;
 }
 
 #rocket {
   position:absolute;
   left:50%;
-  bottom:0;
   transform:translateX(-50%);
-  font-size:35px;
-  transition:0.05s;
+  bottom:0;
 }
 
 /* CONTROLS */
 .controls {
-  padding:15px;
-  display:grid;
-  gap:10px;
-}
-
-.row {
-  display:flex;
-  gap:10px;
-}
-
-input {
-  flex:1;
   padding:10px;
-  border-radius:8px;
-  border:none;
-  background:#111;
-  color:white;
 }
 
 button {
-  flex:1;
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  font-weight:bold;
-  cursor:pointer;
+  padding:10px;
+  margin:5px;
 }
 
-.start { background:#22c55e; }
-.cash { background:#f59e0b; }
-
-.result {
-  text-align:center;
+/* HISTORY */
+#history span {
+  padding:5px;
+  margin:2px;
+  border-radius:4px;
 }
 
-/* CRASH EFFECT */
-.flash {
-  animation: flash 0.3s;
-}
-@keyframes flash {
-  0% { background:red; }
-  100% { background:black; }
+.low { background:red; }
+.mid { background:orange; }
+.high { background:green; }
+
+/* FEED */
+#feed {
+  position:absolute;
+  right:10px;
+  top:80px;
+  font-size:12px;
 }
 </style>
 </head>
 
 <body>
 
-<canvas class="bg" id="stars"></canvas>
-
 <div class="topbar">
   <div>🚀 Space Crash</div>
   <div>💰 <span id="balance"></span></div>
 </div>
 
-<div id="multi">1.00x</div>
+<h1 id="multi">1.00x</h1>
 
-<div class="game">
-  <div class="graph-wrap">
-    <canvas id="graph" width="320" height="200"></canvas>
-    <div id="rocket">🚀</div>
-  </div>
+<div class="wrap">
+  <canvas id="graph" width="320" height="200"></canvas>
+  <div id="rocket">🚀</div>
 </div>
 
 <div class="controls">
-  <div class="row">
-    <input type="number" id="bet" value="10">
-    <input type="number" id="auto" placeholder="Auto">
-  </div>
-
-  <div class="row">
-    <button class="start" onclick="startGame()">LAUNCH</button>
-    <button class="cash" onclick="cashOut()">CASH OUT</button>
-  </div>
-
-  <div class="result" id="result"></div>
+  <input type="number" id="bet" value="10">
+  <button onclick="startGame()">LAUNCH</button>
+  <button onclick="cashOut()">CASH</button>
 </div>
 
+<div id="history"></div>
+<div id="feed"></div>
+
 <script>
-// ===== STAR BACKGROUND =====
-const starCanvas = document.getElementById("stars");
-const sctx = starCanvas.getContext("2d");
+// SOUND
+let tick = new Audio("https://www.soundjay.com/button/beep-07.wav");
+let boom = new Audio("https://www.soundjay.com/explosion/explosion-01.mp3");
 
-starCanvas.width = window.innerWidth;
-starCanvas.height = window.innerHeight;
-
-let stars = Array(100).fill().map(() => ({
-  x: Math.random()*starCanvas.width,
-  y: Math.random()*starCanvas.height,
-  size: Math.random()*2
-}));
-
-function drawStars(){
-  sctx.clearRect(0,0,starCanvas.width,starCanvas.height);
-  sctx.fillStyle = "white";
-
-  stars.forEach(s=>{
-    s.y += 0.5;
-    if(s.y > starCanvas.height) s.y = 0;
-
-    sctx.fillRect(s.x,s.y,s.size,s.size);
-  });
-
-  requestAnimationFrame(drawStars);
-}
-drawStars();
-
-// ===== GAME =====
-let balance = parseInt(localStorage.getItem("balance") || 100);
-
-let multi = 1;
-let running = false;
-let crashPoint = 0;
-let interval;
+// GAME
+let balance = parseInt(localStorage.getItem("balance")||100);
+let multi=1,running=false,crashPoint=0,interval;
+let history=[];
 
 const ctx = document.getElementById("graph").getContext("2d");
 const rocket = document.getElementById("rocket");
@@ -181,95 +111,99 @@ const rocket = document.getElementById("rocket");
 updateBalance();
 
 function updateBalance(){
-  document.getElementById("balance").innerText = balance;
-  localStorage.setItem("balance", balance);
+ document.getElementById("balance").innerText=balance;
+ localStorage.setItem("balance",balance);
 }
 
 function resetGraph(){
-  ctx.clearRect(0,0,320,200);
-  ctx.beginPath();
-  ctx.moveTo(0,200);
+ ctx.clearRect(0,0,320,200);
+ ctx.beginPath();
+ ctx.moveTo(0,200);
 }
 
 function startGame(){
-  if(running) return;
+ if(running) return;
 
-  let bet = parseInt(document.getElementById("bet").value);
-  if(balance < bet) return;
+ let bet=parseInt(document.getElementById("bet").value);
+ if(balance<bet) return;
 
-  balance -= bet;
-  updateBalance();
+ balance-=bet;
+ updateBalance();
 
-  multi = 1;
-  running = true;
-  crashPoint = Math.random()*5 + 1;
+ multi=1;
+ running=true;
+ crashPoint=Math.random()*5+1;
 
-  resetGraph();
-  document.getElementById("result").innerText = "";
+ resetGraph();
 
-  let x = 0;
+ let x=0;
 
-  interval = setInterval(()=>{
-    if(!running) return;
+ interval=setInterval(()=>{
+  if(!running) return;
 
-    multi *= 1.02;
+  multi*=1.03;
 
-    let el = document.getElementById("multi");
-    el.innerText = multi.toFixed(2) + "x";
+  document.getElementById("multi").innerText=multi.toFixed(2)+"x";
 
-    let color = multi < 2 ? "#22c55e" :
-                multi < 3 ? "#facc15" :
-                "#ef4444";
+  ctx.lineTo(x,200-multi*15);
+  ctx.strokeStyle="lime";
+  ctx.stroke();
+  x+=2;
 
-    el.style.color = color;
+  rocket.style.bottom=(multi*15)+"px";
 
-    ctx.strokeStyle = color;
-    ctx.lineTo(x, 200 - multi * 15);
-    ctx.stroke();
-    x += 2;
+  tick.currentTime=0;
+  tick.play();
 
-    rocket.style.bottom = (multi * 15) + "px";
+  if(multi>=crashPoint){
+    crash();
+    clearInterval(interval);
+  }
 
-    let auto = parseFloat(document.getElementById("auto").value);
-    if(auto && multi >= auto) cashOut();
-
-    if(multi >= crashPoint){
-      crash();
-      clearInterval(interval);
-    }
-
-  },50);
+ },60);
 }
 
 function crash(){
-  document.body.classList.add("flash");
+ boom.play();
+ document.getElementById("multi").innerText="💥";
+ running=false;
 
-  document.getElementById("multi").innerText = "💥 CRASH!";
-  document.getElementById("result").innerText = "Kalah!";
-  running = false;
-
-  rocket.innerText = "💥";
-
-  setTimeout(()=>{
-    document.body.classList.remove("flash");
-  },300);
+ history.unshift(crashPoint.toFixed(2));
+ updateHistory();
 }
 
 function cashOut(){
-  if(!running) return;
+ if(!running) return;
 
-  let bet = parseInt(document.getElementById("bet").value);
-  let win = Math.floor(bet * multi);
+ let bet=parseInt(document.getElementById("bet").value);
+ let win=Math.floor(bet*multi);
 
-  balance += win;
-  updateBalance();
+ balance+=win;
+ updateBalance();
 
-  document.getElementById("result").innerText =
-    "Menang: " + win;
-
-  running = false;
-  clearInterval(interval);
+ running=false;
+ clearInterval(interval);
 }
+
+function updateHistory(){
+ let html="";
+ history.slice(0,10).forEach(v=>{
+  let c=v<2?"low":v<3?"mid":"high";
+  html+=`<span class="${c}">${v}x</span>`;
+ });
+ document.getElementById("history").innerHTML=html;
+}
+
+// FAKE FEED
+const names=["Rizky","Andi","Budi","Doni","Fajar"];
+
+setInterval(()=>{
+ let n=names[Math.floor(Math.random()*names.length)];
+ let v=(Math.random()*3+1).toFixed(2);
+ document.getElementById("feed").innerText=
+  n+" cash out "+v+"x";
+},2000);
+
 </script>
 
 </body>

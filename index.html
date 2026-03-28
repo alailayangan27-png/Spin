@@ -1,67 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Crash Leaderboard</title>
+  <title>Space Crash</title>
   <style>
     body {
-      background: #020617;
+      margin: 0;
+      background: radial-gradient(circle at top, #020617, #000);
       color: white;
       font-family: Arial;
       text-align: center;
+      overflow: hidden;
     }
 
-    h1 { font-size: 50px; }
+    h1 {
+      font-size: 60px;
+      margin-top: 20px;
+      text-shadow: 0 0 20px #00f;
+    }
+
+    #game {
+      position: relative;
+      height: 300px;
+    }
 
     canvas {
-      background: black;
-      border: 2px solid #444;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
     }
 
-    input, button {
-      padding: 8px;
+    #rocket {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      font-size: 40px;
+      transition: 0.1s;
+    }
+
+    button {
+      padding: 10px 20px;
       margin: 5px;
-      border-radius: 5px;
       border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
     }
 
-    .start { background: #16a34a; }
+    .start { background: #22c55e; }
     .cash { background: #f59e0b; }
 
-    #leaderboard {
-      margin-top: 20px;
-      text-align: left;
-      display: inline-block;
+    #balance {
+      margin-top: 10px;
+      font-size: 18px;
+    }
+
+    .glow {
+      color: #00f;
+      text-shadow: 0 0 10px #00f, 0 0 20px #00f;
     }
   </style>
 </head>
 <body>
 
-<h2>💥 Crash Game Leaderboard</h2>
+<h2>🚀 Space Crash</h2>
+<h1 id="multi" class="glow">1.00x</h1>
 
-<input id="username" placeholder="Username">
-<button onclick="saveUser()">Masuk</button>
-
-<h1 id="multi">1.00x</h1>
-
-<canvas id="graph" width="320" height="200"></canvas><br>
-
-<input type="number" id="bet" value="10">
-<input type="number" id="auto" placeholder="Auto cashout">
+<div id="game">
+  <canvas id="graph" width="320" height="300"></canvas>
+  <div id="rocket">🚀</div>
+</div>
 
 <br>
 
-<button class="start" onclick="startGame()">START</button>
+<input type="number" id="bet" value="10">
+<input type="number" id="auto" placeholder="Auto">
+
+<br>
+
+<button class="start" onclick="startGame()">LAUNCH</button>
 <button class="cash" onclick="cashOut()">CASH OUT</button>
 
 <h3 id="result"></h3>
 <h3 id="balance"></h3>
 
-<div id="leaderboard"></div>
-
 <script>
-let username = localStorage.getItem("username") || "Guest";
 let balance = parseInt(localStorage.getItem("balance") || 100);
-let leaderboard = JSON.parse(localStorage.getItem("leaderboard") || "[]");
 
 let multi = 1;
 let running = false;
@@ -69,14 +94,9 @@ let crashPoint = 0;
 let interval;
 
 const ctx = document.getElementById("graph").getContext("2d");
+const rocket = document.getElementById("rocket");
 
 updateBalance();
-updateLeaderboard();
-
-function saveUser() {
-  username = document.getElementById("username").value || "Guest";
-  localStorage.setItem("username", username);
-}
 
 function updateBalance() {
   document.getElementById("balance").innerText =
@@ -85,9 +105,9 @@ function updateBalance() {
 }
 
 function resetGraph() {
-  ctx.clearRect(0, 0, 320, 200);
+  ctx.clearRect(0, 0, 320, 300);
   ctx.beginPath();
-  ctx.moveTo(0, 200);
+  ctx.moveTo(0, 300);
 }
 
 function startGame() {
@@ -101,7 +121,6 @@ function startGame() {
 
   multi = 1;
   running = true;
-
   crashPoint = Math.random() * 5 + 1;
 
   resetGraph();
@@ -113,29 +132,45 @@ function startGame() {
     if (!running) return;
 
     multi *= 1.02;
-    document.getElementById("multi").innerText =
-      multi.toFixed(2) + "x";
 
-    ctx.lineTo(x, 200 - multi * 15);
-    ctx.strokeStyle = "#22c55e";
+    let multiEl = document.getElementById("multi");
+    multiEl.innerText = multi.toFixed(2) + "x";
+
+    // warna berubah
+    let color = multi < 2 ? "#22c55e" :
+                multi < 3 ? "#facc15" :
+                "#ef4444";
+
+    multiEl.style.color = color;
+
+    // grafik
+    ctx.strokeStyle = color;
+    ctx.lineTo(x, 300 - multi * 40);
     ctx.stroke();
     x += 2;
 
+    // rocket naik
+    rocket.style.bottom = (multi * 40) + "px";
+
+    // auto cashout
     let auto = parseFloat(document.getElementById("auto").value);
     if (auto && multi >= auto) cashOut();
 
+    // crash
     if (multi >= crashPoint) {
       crash();
       clearInterval(interval);
     }
 
-  }, 60);
+  }, 50);
 }
 
 function crash() {
   document.getElementById("multi").innerText = "💥 CRASH!";
   document.getElementById("result").innerText = "Kalah!";
   running = false;
+
+  rocket.innerText = "💥";
 }
 
 function cashOut() {
@@ -148,31 +183,10 @@ function cashOut() {
   updateBalance();
 
   document.getElementById("result").innerText =
-    "Menang: " + win;
+    "Menang: " + win + " (" + multi.toFixed(2) + "x)";
 
   running = false;
   clearInterval(interval);
-
-  saveScore(win);
-}
-
-function saveScore(win) {
-  leaderboard.push({ name: username, score: win });
-  leaderboard.sort((a,b)=>b.score-a.score);
-  leaderboard = leaderboard.slice(0,10);
-
-  localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
-  updateLeaderboard();
-}
-
-function updateLeaderboard() {
-  let html = "<h3>🏆 Leaderboard</h3>";
-
-  leaderboard.forEach((p,i)=>{
-    html += `<p>${i+1}. ${p.name} - ${p.score}</p>`;
-  });
-
-  document.getElementById("leaderboard").innerHTML = html;
 }
 </script>
 

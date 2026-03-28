@@ -1,93 +1,138 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Space Crash</title>
-  <style>
-    body {
-      margin: 0;
-      background: radial-gradient(circle at top, #020617, #000);
-      color: white;
-      font-family: Arial;
-      text-align: center;
-      overflow: hidden;
-    }
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Space Crash X</title>
 
-    h1 {
-      font-size: 60px;
-      margin-top: 20px;
-      text-shadow: 0 0 20px #00f;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: radial-gradient(circle at top, #020617, #000);
+  color: white;
+  overflow: hidden;
+}
 
-    #game {
-      position: relative;
-      height: 300px;
-    }
+/* HEADER */
+#topbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background: rgba(0,0,0,0.6);
+}
 
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-    }
+button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
 
-    #rocket {
-      position: absolute;
-      left: 50%;
-      bottom: 0;
-      transform: translateX(-50%);
-      font-size: 40px;
-      transition: 0.1s;
-    }
+/* GAME AREA */
+#game {
+  position: relative;
+  height: 60vh;
+}
 
-    button {
-      padding: 10px 20px;
-      margin: 5px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-    }
+canvas {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
 
-    .start { background: #22c55e; }
-    .cash { background: #f59e0b; }
+#rocket {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  font-size: 40px;
+}
 
-    #balance {
-      margin-top: 10px;
-      font-size: 18px;
-    }
+#multi {
+  text-align: center;
+  font-size: 60px;
+  margin-top: 10px;
+}
 
-    .glow {
-      color: #00f;
-      text-shadow: 0 0 10px #00f, 0 0 20px #00f;
-    }
-  </style>
+/* CONTROL */
+#controls {
+  text-align: center;
+  margin-top: 10px;
+}
+
+input {
+  padding: 8px;
+  margin: 5px;
+  border-radius: 5px;
+  border: none;
+}
+
+.start { background: #22c55e; }
+.cash { background: #f59e0b; }
+
+/* MODAL DEPOSIT */
+#depositBox {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+#depositContent {
+  background: #111;
+  padding: 20px;
+  border-radius: 10px;
+}
+</style>
 </head>
+
 <body>
 
-<h2>🚀 Space Crash</h2>
-<h1 id="multi" class="glow">1.00x</h1>
+<!-- TOP -->
+<div id="topbar">
+  <div>🚀 Space Crash</div>
+  <div>💰 <span id="balance">0</span></div>
+  <button onclick="openDeposit()">Deposit</button>
+</div>
 
+<h1 id="multi">1.00x</h1>
+
+<!-- GAME -->
 <div id="game">
-  <canvas id="graph" width="320" height="300"></canvas>
+  <canvas id="graph" width="350" height="300"></canvas>
   <div id="rocket">🚀</div>
 </div>
 
-<br>
+<!-- CONTROL -->
+<div id="controls">
+  <input type="number" id="bet" value="10">
+  <input type="number" id="auto" placeholder="Auto cashout">
 
-<input type="number" id="bet" value="10">
-<input type="number" id="auto" placeholder="Auto">
+  <br>
 
-<br>
+  <button class="start" onclick="startGame()">LAUNCH</button>
+  <button class="cash" onclick="cashOut()">CASH OUT</button>
 
-<button class="start" onclick="startGame()">LAUNCH</button>
-<button class="cash" onclick="cashOut()">CASH OUT</button>
+  <h3 id="result"></h3>
+</div>
 
-<h3 id="result"></h3>
-<h3 id="balance"></h3>
+<!-- DEPOSIT MODAL -->
+<div id="depositBox">
+  <div id="depositContent">
+    <h3>Tambah Saldo</h3>
+    <input type="number" id="amount" placeholder="Jumlah"><br><br>
+    <button onclick="deposit()">Tambah</button>
+    <button onclick="closeDeposit()">Tutup</button>
+  </div>
+</div>
 
 <script>
 let balance = parseInt(localStorage.getItem("balance") || 100);
-
 let multi = 1;
 let running = false;
 let crashPoint = 0;
@@ -99,13 +144,30 @@ const rocket = document.getElementById("rocket");
 updateBalance();
 
 function updateBalance() {
-  document.getElementById("balance").innerText =
-    "Balance: " + balance;
+  document.getElementById("balance").innerText = balance;
   localStorage.setItem("balance", balance);
 }
 
+function openDeposit() {
+  document.getElementById("depositBox").style.display = "flex";
+}
+
+function closeDeposit() {
+  document.getElementById("depositBox").style.display = "none";
+}
+
+function deposit() {
+  let amt = parseInt(document.getElementById("amount").value);
+  if (!amt) return;
+
+  balance += amt;
+  updateBalance();
+  closeDeposit();
+}
+
+/* GAME */
 function resetGraph() {
-  ctx.clearRect(0, 0, 320, 300);
+  ctx.clearRect(0, 0, 350, 300);
   ctx.beginPath();
   ctx.moveTo(0, 300);
 }
@@ -136,27 +198,22 @@ function startGame() {
     let multiEl = document.getElementById("multi");
     multiEl.innerText = multi.toFixed(2) + "x";
 
-    // warna berubah
     let color = multi < 2 ? "#22c55e" :
                 multi < 3 ? "#facc15" :
                 "#ef4444";
 
     multiEl.style.color = color;
 
-    // grafik
     ctx.strokeStyle = color;
     ctx.lineTo(x, 300 - multi * 40);
     ctx.stroke();
     x += 2;
 
-    // rocket naik
     rocket.style.bottom = (multi * 40) + "px";
 
-    // auto cashout
     let auto = parseFloat(document.getElementById("auto").value);
     if (auto && multi >= auto) cashOut();
 
-    // crash
     if (multi >= crashPoint) {
       crash();
       clearInterval(interval);
@@ -169,7 +226,6 @@ function crash() {
   document.getElementById("multi").innerText = "💥 CRASH!";
   document.getElementById("result").innerText = "Kalah!";
   running = false;
-
   rocket.innerText = "💥";
 }
 
@@ -183,7 +239,7 @@ function cashOut() {
   updateBalance();
 
   document.getElementById("result").innerText =
-    "Menang: " + win + " (" + multi.toFixed(2) + "x)";
+    "Menang: " + win;
 
   running = false;
   clearInterval(interval);

@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trading Battle Live</title>
+<title>Trading Battle Room</title>
 
 <style>
 body {
@@ -12,6 +12,7 @@ body {
   color:white;
 }
 
+/* HEADER */
 .header {
   display:flex;
   justify-content:space-between;
@@ -19,18 +20,25 @@ body {
   background:#111;
 }
 
+/* ROOM */
+.room {
+  padding:10px;
+}
+
+.slot {
+  background:#111;
+  padding:10px;
+  margin:5px;
+  border-radius:6px;
+}
+
+/* PRICE */
 #price {
   text-align:center;
-  font-size:40px;
-  margin:10px;
+  font-size:35px;
 }
 
-canvas {
-  width:100%;
-  height:200px;
-  background:black;
-}
-
+/* PLAY AREA */
 .players {
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -44,6 +52,7 @@ canvas {
   border-radius:8px;
 }
 
+/* INPUT */
 input {
   width:100%;
   padding:8px;
@@ -51,13 +60,14 @@ input {
   border-radius:5px;
 }
 
+/* CONTROL */
 .controls {
   text-align:center;
   padding:10px;
 }
 
 button {
-  padding:10px 20px;
+  padding:10px;
   margin:5px;
   border:none;
   border-radius:5px;
@@ -65,11 +75,9 @@ button {
 
 .start { background:#22c55e; }
 
+/* TIMER */
 #timer {
-  font-size:30px;
-}
-
-.result {
+  font-size:25px;
   text-align:center;
 }
 </style>
@@ -78,92 +86,93 @@ button {
 <body>
 
 <div class="header">
-  <div>📊 Trading Battle LIVE</div>
+  <div>📊 Trading Room</div>
   <div id="timer">30</div>
 </div>
 
 <div id="price">$0</div>
 
-<canvas id="chart"></canvas>
+<!-- ROOM -->
+<div class="room">
+  <div class="slot" id="slot1">P1: Waiting...</div>
+  <div class="slot" id="slot2">P2: Waiting...</div>
+  <div class="slot" id="slot3">P3: Waiting...</div>
+  <div class="slot" id="slot4">P4: Waiting...</div>
+</div>
 
+<!-- INPUT -->
 <div class="players">
-  <div class="player">P1 <input id="p1"></div>
-  <div class="player">P2 <input id="p2"></div>
-  <div class="player">P3 <input id="p3"></div>
-  <div class="player">P4 <input id="p4"></div>
+  <div class="player">You <input id="guess"></div>
 </div>
 
 <div class="controls">
-  <button class="start" onclick="startGame()">START</button>
+  <button class="start" onclick="startGame()">START MATCH</button>
 </div>
 
-<div class="result" id="result"></div>
+<h3 id="result" style="text-align:center;"></h3>
 
 <script>
-// ===== REAL PRICE (BINANCE WS) =====
-let price = 0;
+// ===== FAKE ROOM JOIN =====
+const names = ["Rizky","Andi","Budi","Doni","Fajar"];
 
+function fillRoom() {
+  for(let i=1;i<=4;i++){
+    let name = names[Math.floor(Math.random()*names.length)];
+    document.getElementById("slot"+i).innerText =
+      "P"+i+": "+name;
+  }
+}
+fillRoom();
+
+// ===== REAL PRICE =====
+let price = 0;
 let ws = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@trade");
 
-ws.onmessage = (event) => {
-  let data = JSON.parse(event.data);
+ws.onmessage = (e)=>{
+  let data = JSON.parse(e.data);
   price = parseFloat(data.p);
 
   document.getElementById("price").innerText =
-    "$" + price.toFixed(2);
-
-  updateChart(price);
+    "$"+price.toFixed(2);
 };
-
-// ===== CHART =====
-const ctx = document.getElementById("chart").getContext("2d");
-let x = 0;
-
-function updateChart(p) {
-  ctx.lineTo(x, 200 - (p % 1000)/5);
-  ctx.strokeStyle = "#22c55e";
-  ctx.stroke();
-  x += 2;
-
-  if (x > 400) {
-    ctx.clearRect(0,0,400,200);
-    ctx.beginPath();
-    ctx.moveTo(0,100);
-    x = 0;
-  }
-}
 
 // ===== GAME =====
 let running = false;
 let time = 30;
 
-function startGame() {
-  if (running) return;
+function startGame(){
+  if(running) return;
 
   running = true;
   time = 30;
-  document.getElementById("result").innerText = "";
+  document.getElementById("result").innerText="";
 
-  let timerInterval = setInterval(() => {
+  let fakeGuesses = [
+    Math.random()*price,
+    Math.random()*price,
+    Math.random()*price
+  ];
+
+  let timer = setInterval(()=>{
     time--;
     document.getElementById("timer").innerText = time;
 
-    if (time <= 0) {
-      running = false;
-      clearInterval(timerInterval);
-      endGame();
+    if(time <= 0){
+      running=false;
+      clearInterval(timer);
+      endGame(fakeGuesses);
     }
-  }, 1000);
+  },1000);
 }
 
-function endGame() {
+function endGame(fake){
   let finalPrice = price;
 
   let players = [
-    {name:"P1", val:parseFloat(p1.value)},
-    {name:"P2", val:parseFloat(p2.value)},
-    {name:"P3", val:parseFloat(p3.value)},
-    {name:"P4", val:parseFloat(p4.value)}
+    {name:"You", val:parseFloat(guess.value)},
+    {name:"P2", val:fake[0]},
+    {name:"P3", val:fake[1]},
+    {name:"P4", val:fake[2]}
   ];
 
   players.forEach(p=>{

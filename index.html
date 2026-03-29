@@ -2,176 +2,130 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trading Battle Pro UI</title>
+<title>BTC Trading Battle Pro</title>
+
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
 <style>
-* {
-  box-sizing: border-box;
-  font-family: 'Segoe UI', sans-serif;
-}
-
 body {
-  margin: 0;
-  background: radial-gradient(circle at top, #020617, #000);
-  color: white;
-}
-
-/* CONTAINER */
-.container {
-  max-width: 500px;
-  margin: auto;
-  padding: 10px;
+  margin:0;
+  background:#0b0f19;
+  color:white;
+  font-family:'Segoe UI', sans-serif;
 }
 
 /* HEADER */
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.logo {
-  font-weight: bold;
-  font-size: 18px;
-}
-
-.timer {
-  background: rgba(255,255,255,0.08);
-  padding: 6px 12px;
-  border-radius: 8px;
-}
-
-/* PRICE CARD */
-.price-card {
-  text-align: center;
-  padding: 20px;
-  border-radius: 15px;
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(10px);
-  margin-bottom: 10px;
+  display:flex;
+  justify-content:space-between;
+  padding:12px;
+  background:#111827;
 }
 
 #price {
-  font-size: 40px;
-  font-weight: bold;
-  text-shadow: 0 0 15px cyan;
+  font-size:26px;
+  font-weight:bold;
 }
 
 /* CHART */
-canvas {
-  width: 100%;
-  height: 150px;
-  background: #000;
-  border-radius: 10px;
-  margin-top: 10px;
+#chart {
+  height:300px;
 }
 
 /* ROOM */
 .room {
-  margin-top: 10px;
+  padding:10px;
 }
 
 .slot {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px;
-  margin-bottom: 6px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.05);
+  display:flex;
+  justify-content:space-between;
+  padding:10px;
+  margin-bottom:5px;
+  background:#111827;
+  border-radius:8px;
 }
 
 /* INPUT */
-.input-card {
-  margin-top: 10px;
-  padding: 15px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.05);
+.input-box {
+  padding:10px;
 }
 
 input {
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
-  background: #111;
-  color: white;
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:6px;
+  background:#1f2937;
+  color:white;
 }
 
 /* BUTTON */
 button {
-  width: 100%;
-  margin-top: 10px;
-  padding: 12px;
-  border-radius: 10px;
-  border: none;
-  font-weight: bold;
-  cursor: pointer;
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  transition: 0.2s;
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:8px;
+  background:#16a34a;
+  color:white;
+  font-weight:bold;
 }
 
-button:hover {
-  transform: scale(1.03);
-}
-
-/* RESULT */
-.result {
-  text-align: center;
-  margin-top: 10px;
-  font-size: 16px;
+/* TIMER */
+#timer {
+  text-align:center;
+  font-size:22px;
+  margin-top:5px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
-
-  <!-- HEADER -->
-  <div class="header">
-    <div class="logo">📊 Trading Battle</div>
-    <div class="timer" id="timer">30s</div>
-  </div>
-
-  <!-- PRICE -->
-  <div class="price-card">
-    <div id="price">$0</div>
-    <canvas id="chart"></canvas>
-  </div>
-
-  <!-- ROOM -->
-  <div class="room">
-    <div class="slot"><span>P1</span><span id="s1">...</span></div>
-    <div class="slot"><span>P2</span><span id="s2">...</span></div>
-    <div class="slot"><span>P3</span><span id="s3">...</span></div>
-    <div class="slot"><span>P4</span><span id="s4">...</span></div>
-  </div>
-
-  <!-- INPUT -->
-  <div class="input-card">
-    <input id="guess" placeholder="Masukkan prediksi harga">
-    <button onclick="startGame()">START MATCH</button>
-  </div>
-
-  <div class="result" id="result"></div>
-
+<div class="header">
+  <div>₿ BTC Battle Pro</div>
+  <div id="price">$0</div>
 </div>
+
+<div id="chart"></div>
+
+<div id="timer">30s</div>
+
+<div class="room">
+  <div class="slot"><span>P1</span><span id="s1"></span></div>
+  <div class="slot"><span>P2</span><span id="s2"></span></div>
+  <div class="slot"><span>P3</span><span id="s3"></span></div>
+  <div class="slot"><span>P4</span><span id="s4"></span></div>
+</div>
+
+<div class="input-box">
+  <input id="guess" placeholder="Prediksi harga BTC">
+  <button onclick="startGame()">START MATCH</button>
+</div>
+
+<h3 id="result" style="text-align:center;"></h3>
 
 <script>
 // ===== ROOM =====
-const names = ["Rizky","Andi","Budi","Doni","Fajar"];
-
-function fillRoom(){
-  for(let i=1;i<=4;i++){
-    document.getElementById("s"+i).innerText =
-      names[Math.floor(Math.random()*names.length)];
-  }
+const names=["Rizky","Andi","Budi","Doni","Fajar"];
+for(let i=1;i<=4;i++){
+  document.getElementById("s"+i).innerText =
+    names[Math.floor(Math.random()*names.length)];
 }
-fillRoom();
 
-// ===== PRICE (REAL) =====
+// ===== CHART SETUP =====
+const chart = LightweightCharts.createChart(
+  document.getElementById('chart'),
+  { layout: { background:{color:'#0b0f19'}, textColor:'#DDD' } }
+);
+
+const candleSeries = chart.addCandlestickSeries();
+
+// ===== PRICE =====
 let price = 0;
+
+// WebSocket Binance
 let ws = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@trade");
 
 ws.onmessage = (e)=>{
@@ -179,27 +133,32 @@ ws.onmessage = (e)=>{
   price = parseFloat(data.p);
 
   document.getElementById("price").innerText =
-    "$" + price.toFixed(2);
+    "$"+price.toLocaleString();
 
-  updateChart(price);
+  updateCandle(price);
 };
 
-// ===== CHART =====
-const ctx = document.getElementById("chart").getContext("2d");
-let x = 0;
+// ===== CANDLE LOGIC =====
+let candle = null;
 
-function updateChart(p){
-  ctx.lineTo(x,150 - (p % 1000)/5);
-  ctx.strokeStyle = "#22c55e";
-  ctx.stroke();
-  x += 2;
+function updateCandle(p){
+  let time = Math.floor(Date.now()/1000);
 
-  if(x > 400){
-    ctx.clearRect(0,0,400,150);
-    ctx.beginPath();
-    ctx.moveTo(0,75);
-    x = 0;
+  if(!candle || candle.time !== time){
+    candle = {
+      time: time,
+      open: p,
+      high: p,
+      low: p,
+      close: p
+    };
+  } else {
+    candle.high = Math.max(candle.high,p);
+    candle.low = Math.min(candle.low,p);
+    candle.close = p;
   }
+
+  candleSeries.update(candle);
 }
 
 // ===== GAME =====
@@ -211,42 +170,42 @@ function startGame(){
 
   running=true;
   time=30;
-  document.getElementById("result").innerText="";
+  result.innerText="";
 
-  let fake = [
+  let fake=[
     Math.random()*price,
     Math.random()*price,
     Math.random()*price
   ];
 
-  let timer = setInterval(()=>{
+  let t=setInterval(()=>{
     time--;
-    document.getElementById("timer").innerText = time+"s";
+    timer.innerText=time+"s";
 
     if(time<=0){
       running=false;
-      clearInterval(timer);
+      clearInterval(t);
       endGame(fake);
     }
   },1000);
 }
 
 function endGame(fake){
-  let players = [
-    {name:"You", val:parseFloat(guess.value)},
-    {name:"P2", val:fake[0]},
-    {name:"P3", val:fake[1]},
-    {name:"P4", val:fake[2]}
+  let players=[
+    {name:"You",val:parseFloat(guess.value)},
+    {name:"P2",val:fake[0]},
+    {name:"P3",val:fake[1]},
+    {name:"P4",val:fake[2]}
   ];
 
   players.forEach(p=>{
-    p.diff = Math.abs(p.val - price);
+    p.diff=Math.abs(p.val-price);
   });
 
   players.sort((a,b)=>a.diff-b.diff);
 
-  document.getElementById("result").innerText =
-    "Final $" + price.toFixed(2) +
+  result.innerText =
+    "Final $" + price.toLocaleString() +
     " | Winner: " + players[0].name;
 }
 </script>

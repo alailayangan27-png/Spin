@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BTC Trading Battle Pro</title>
+<title>BTC Trading Battle</title>
 
 <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
@@ -14,7 +14,6 @@ body {
   font-family:'Segoe UI', sans-serif;
 }
 
-/* HEADER */
 .header {
   display:flex;
   justify-content:space-between;
@@ -27,12 +26,10 @@ body {
   font-weight:bold;
 }
 
-/* CHART */
 #chart {
   height:300px;
 }
 
-/* ROOM */
 .room {
   padding:10px;
 }
@@ -46,7 +43,6 @@ body {
   border-radius:8px;
 }
 
-/* INPUT */
 .input-box {
   padding:10px;
 }
@@ -60,7 +56,6 @@ input {
   color:white;
 }
 
-/* BUTTON */
 button {
   width:100%;
   padding:12px;
@@ -70,13 +65,23 @@ button {
   background:#16a34a;
   color:white;
   font-weight:bold;
+  cursor:pointer;
 }
 
-/* TIMER */
+button:disabled {
+  background:gray;
+}
+
 #timer {
   text-align:center;
   font-size:22px;
   margin-top:5px;
+}
+
+.countdown {
+  text-align:center;
+  font-size:40px;
+  color:cyan;
 }
 </style>
 </head>
@@ -84,13 +89,14 @@ button {
 <body>
 
 <div class="header">
-  <div>₿ BTC Battle Pro</div>
+  <div>₿ BTC Battle</div>
   <div id="price">$0</div>
 </div>
 
 <div id="chart"></div>
 
 <div id="timer">30s</div>
+<div class="countdown" id="countdown"></div>
 
 <div class="room">
   <div class="slot"><span>P1</span><span id="s1"></span></div>
@@ -101,12 +107,19 @@ button {
 
 <div class="input-box">
   <input id="guess" placeholder="Prediksi harga BTC">
-  <button onclick="startGame()">START MATCH</button>
+  <button id="startBtn">START MATCH</button>
 </div>
 
 <h3 id="result" style="text-align:center;"></h3>
 
 <script>
+// ===== ELEMENT =====
+const timerEl = document.getElementById("timer");
+const resultEl = document.getElementById("result");
+const guessEl = document.getElementById("guess");
+const startBtn = document.getElementById("startBtn");
+const countdownEl = document.getElementById("countdown");
+
 // ===== ROOM =====
 const names=["Rizky","Andi","Budi","Doni","Fajar"];
 for(let i=1;i<=4;i++){
@@ -114,7 +127,7 @@ for(let i=1;i<=4;i++){
     names[Math.floor(Math.random()*names.length)];
 }
 
-// ===== CHART SETUP =====
+// ===== CHART =====
 const chart = LightweightCharts.createChart(
   document.getElementById('chart'),
   { layout: { background:{color:'#0b0f19'}, textColor:'#DDD' } }
@@ -125,7 +138,6 @@ const candleSeries = chart.addCandlestickSeries();
 // ===== PRICE =====
 let price = 0;
 
-// WebSocket Binance
 let ws = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@trade");
 
 ws.onmessage = (e)=>{
@@ -138,7 +150,7 @@ ws.onmessage = (e)=>{
   updateCandle(price);
 };
 
-// ===== CANDLE LOGIC =====
+// ===== CANDLE =====
 let candle = null;
 
 function updateCandle(p){
@@ -162,49 +174,64 @@ function updateCandle(p){
 }
 
 // ===== GAME =====
-let running=false;
-let time=30;
+let running = false;
+let time = 30;
 
-function startGame(){
-  if(running) return;
+startBtn.onclick = async () => {
+  if (running) return;
 
-  running=true;
-  time=30;
-  result.innerText="";
+  if (!guessEl.value) {
+    alert("Masukkan prediksi dulu!");
+    return;
+  }
 
-  let fake=[
+  startBtn.disabled = true;
+  resultEl.innerText = "";
+
+  // countdown 3..2..1
+  for (let i = 3; i > 0; i--) {
+    countdownEl.innerText = i;
+    await new Promise(r => setTimeout(r, 800));
+  }
+  countdownEl.innerText = "";
+
+  running = true;
+  time = 30;
+
+  let fake = [
     Math.random()*price,
     Math.random()*price,
     Math.random()*price
   ];
 
-  let t=setInterval(()=>{
+  let t = setInterval(() => {
     time--;
-    timer.innerText=time+"s";
+    timerEl.innerText = time + "s";
 
-    if(time<=0){
-      running=false;
+    if (time <= 0) {
+      running = false;
       clearInterval(t);
       endGame(fake);
+      startBtn.disabled = false;
     }
-  },1000);
-}
+  }, 1000);
+};
 
 function endGame(fake){
-  let players=[
-    {name:"You",val:parseFloat(guess.value)},
-    {name:"P2",val:fake[0]},
-    {name:"P3",val:fake[1]},
-    {name:"P4",val:fake[2]}
+  let players = [
+    {name:"You", val:parseFloat(guessEl.value)},
+    {name:"P2", val:fake[0]},
+    {name:"P3", val:fake[1]},
+    {name:"P4", val:fake[2]}
   ];
 
   players.forEach(p=>{
-    p.diff=Math.abs(p.val-price);
+    p.diff = Math.abs(p.val - price);
   });
 
   players.sort((a,b)=>a.diff-b.diff);
 
-  result.innerText =
+  resultEl.innerText =
     "Final $" + price.toLocaleString() +
     " | Winner: " + players[0].name;
 }

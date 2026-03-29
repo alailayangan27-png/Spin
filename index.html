@@ -2,86 +2,49 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BTC Trading Battle</title>
-
-<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+<title>BTC Battle Stable</title>
 
 <style>
 body {
   margin:0;
   background:#0b0f19;
   color:white;
-  font-family:'Segoe UI', sans-serif;
+  font-family:Arial;
 }
 
 .header {
   display:flex;
   justify-content:space-between;
-  padding:12px;
-  background:#111827;
+  padding:10px;
+  background:#111;
 }
 
 #price {
-  font-size:26px;
-  font-weight:bold;
+  font-size:24px;
 }
 
-#chart {
-  height:300px;
-}
-
-.room {
-  padding:10px;
-}
-
-.slot {
-  display:flex;
-  justify-content:space-between;
-  padding:10px;
-  margin-bottom:5px;
-  background:#111827;
-  border-radius:8px;
-}
-
-.input-box {
-  padding:10px;
-}
-
-input {
+canvas {
   width:100%;
+  height:200px;
+  background:black;
+}
+
+input, button {
+  width:90%;
+  margin:10px auto;
+  display:block;
   padding:10px;
-  border:none;
-  border-radius:6px;
-  background:#1f2937;
-  color:white;
 }
 
 button {
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border:none;
-  border-radius:8px;
-  background:#16a34a;
+  background:green;
   color:white;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-button:disabled {
-  background:gray;
+  border:none;
 }
 
 #timer {
   text-align:center;
-  font-size:22px;
-  margin-top:5px;
-}
-
-.countdown {
-  text-align:center;
-  font-size:40px;
-  color:cyan;
+  font-size:20px;
 }
 </style>
 </head>
@@ -89,114 +52,82 @@ button:disabled {
 <body>
 
 <div class="header">
-  <div>₿ BTC Battle</div>
+  <div>BTC Battle</div>
   <div id="price">$0</div>
 </div>
 
-<div id="chart"></div>
+<canvas id="chart"></canvas>
 
-<div id="timer">30s</div>
-<div class="countdown" id="countdown"></div>
+<div id="timer">30</div>
 
-<div class="room">
-  <div class="slot"><span>P1</span><span id="s1"></span></div>
-  <div class="slot"><span>P2</span><span id="s2"></span></div>
-  <div class="slot"><span>P3</span><span id="s3"></span></div>
-  <div class="slot"><span>P4</span><span id="s4"></span></div>
-</div>
+<input id="guess" placeholder="Prediksi harga BTC">
+<button id="startBtn">START</button>
 
-<div class="input-box">
-  <input id="guess" placeholder="Prediksi harga BTC">
-  <button id="startBtn">START MATCH</button>
-</div>
-
-<h3 id="result" style="text-align:center;"></h3>
+<h3 id="result"></h3>
 
 <script>
-// ===== ELEMENT =====
+// ELEMENT
+const priceEl = document.getElementById("price");
 const timerEl = document.getElementById("timer");
 const resultEl = document.getElementById("result");
 const guessEl = document.getElementById("guess");
 const startBtn = document.getElementById("startBtn");
-const countdownEl = document.getElementById("countdown");
 
-// ===== ROOM =====
-const names=["Rizky","Andi","Budi","Doni","Fajar"];
-for(let i=1;i<=4;i++){
-  document.getElementById("s"+i).innerText =
-    names[Math.floor(Math.random()*names.length)];
-}
+// CHART
+const ctx = document.getElementById("chart").getContext("2d");
+let x = 0;
 
-// ===== CHART =====
-const chart = LightweightCharts.createChart(
-  document.getElementById('chart'),
-  { layout: { background:{color:'#0b0f19'}, textColor:'#DDD' } }
-);
-
-const candleSeries = chart.addCandlestickSeries();
-
-// ===== PRICE =====
+// PRICE (API STABIL)
 let price = 0;
 
-let ws = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@trade");
+async function getPrice(){
+  try {
+    let res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
+    let data = await res.json();
+    price = data.bitcoin.usd;
 
-ws.onmessage = (e)=>{
-  let data = JSON.parse(e.data);
-  price = parseFloat(data.p);
+    priceEl.innerText = "$" + price;
 
-  document.getElementById("price").innerText =
-    "$"+price.toLocaleString();
+    drawChart(price);
 
-  updateCandle(price);
-};
-
-// ===== CANDLE =====
-let candle = null;
-
-function updateCandle(p){
-  let time = Math.floor(Date.now()/1000);
-
-  if(!candle || candle.time !== time){
-    candle = {
-      time: time,
-      open: p,
-      high: p,
-      low: p,
-      close: p
-    };
-  } else {
-    candle.high = Math.max(candle.high,p);
-    candle.low = Math.min(candle.low,p);
-    candle.close = p;
+  } catch(e){
+    console.log("API error");
   }
-
-  candleSeries.update(candle);
 }
 
-// ===== GAME =====
+setInterval(getPrice, 2000);
+
+// CHART DRAW
+function drawChart(p){
+  ctx.lineTo(x, 200 - (p % 1000)/5);
+  ctx.strokeStyle="lime";
+  ctx.stroke();
+  x += 2;
+
+  if(x > 400){
+    ctx.clearRect(0,0,400,200);
+    ctx.beginPath();
+    ctx.moveTo(0,100);
+    x = 0;
+  }
+}
+
+// GAME
 let running = false;
-let time = 30;
 
-startBtn.onclick = async () => {
-  if (running) return;
+startBtn.onclick = () => {
 
-  if (!guessEl.value) {
-    alert("Masukkan prediksi dulu!");
+  if(running) return;
+
+  if(!guessEl.value){
+    alert("Isi prediksi dulu");
     return;
   }
 
-  startBtn.disabled = true;
-  resultEl.innerText = "";
-
-  // countdown 3..2..1
-  for (let i = 3; i > 0; i--) {
-    countdownEl.innerText = i;
-    await new Promise(r => setTimeout(r, 800));
-  }
-  countdownEl.innerText = "";
-
   running = true;
-  time = 30;
+  let time = 30;
+
+  resultEl.innerText = "";
 
   let fake = [
     Math.random()*price,
@@ -204,20 +135,21 @@ startBtn.onclick = async () => {
     Math.random()*price
   ];
 
-  let t = setInterval(() => {
+  let interval = setInterval(() => {
     time--;
-    timerEl.innerText = time + "s";
+    timerEl.innerText = time;
 
-    if (time <= 0) {
+    if(time <= 0){
+      clearInterval(interval);
       running = false;
-      clearInterval(t);
       endGame(fake);
-      startBtn.disabled = false;
     }
-  }, 1000);
+
+  },1000);
 };
 
 function endGame(fake){
+
   let players = [
     {name:"You", val:parseFloat(guessEl.value)},
     {name:"P2", val:fake[0]},
@@ -232,7 +164,7 @@ function endGame(fake){
   players.sort((a,b)=>a.diff-b.diff);
 
   resultEl.innerText =
-    "Final $" + price.toLocaleString() +
+    "Final $" + price +
     " | Winner: " + players[0].name;
 }
 </script>

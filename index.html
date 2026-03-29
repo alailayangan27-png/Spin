@@ -2,129 +2,175 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trading Battle Room</title>
+<title>Trading Battle Pro UI</title>
 
 <style>
+* {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
+}
+
 body {
-  margin:0;
-  font-family: Arial;
-  background:#020617;
-  color:white;
+  margin: 0;
+  background: radial-gradient(circle at top, #020617, #000);
+  color: white;
+}
+
+/* CONTAINER */
+.container {
+  max-width: 500px;
+  margin: auto;
+  padding: 10px;
 }
 
 /* HEADER */
 .header {
-  display:flex;
-  justify-content:space-between;
-  padding:10px;
-  background:#111;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.logo {
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.timer {
+  background: rgba(255,255,255,0.08);
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+/* PRICE CARD */
+.price-card {
+  text-align: center;
+  padding: 20px;
+  border-radius: 15px;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
+  margin-bottom: 10px;
+}
+
+#price {
+  font-size: 40px;
+  font-weight: bold;
+  text-shadow: 0 0 15px cyan;
+}
+
+/* CHART */
+canvas {
+  width: 100%;
+  height: 150px;
+  background: #000;
+  border-radius: 10px;
+  margin-top: 10px;
 }
 
 /* ROOM */
 .room {
-  padding:10px;
+  margin-top: 10px;
 }
 
 .slot {
-  background:#111;
-  padding:10px;
-  margin:5px;
-  border-radius:6px;
-}
-
-/* PRICE */
-#price {
-  text-align:center;
-  font-size:35px;
-}
-
-/* PLAY AREA */
-.players {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  padding:10px;
-}
-
-.player {
-  background:#111;
-  padding:10px;
-  border-radius:8px;
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  margin-bottom: 6px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
 }
 
 /* INPUT */
+.input-card {
+  margin-top: 10px;
+  padding: 15px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.05);
+}
+
 input {
-  width:100%;
-  padding:8px;
-  border:none;
-  border-radius:5px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: #111;
+  color: white;
 }
 
-/* CONTROL */
-.controls {
-  text-align:center;
-  padding:10px;
-}
-
+/* BUTTON */
 button {
-  padding:10px;
-  margin:5px;
-  border:none;
-  border-radius:5px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  transition: 0.2s;
 }
 
-.start { background:#22c55e; }
+button:hover {
+  transform: scale(1.03);
+}
 
-/* TIMER */
-#timer {
-  font-size:25px;
-  text-align:center;
+/* RESULT */
+.result {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 16px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">
-  <div>📊 Trading Room</div>
-  <div id="timer">30</div>
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">📊 Trading Battle</div>
+    <div class="timer" id="timer">30s</div>
+  </div>
+
+  <!-- PRICE -->
+  <div class="price-card">
+    <div id="price">$0</div>
+    <canvas id="chart"></canvas>
+  </div>
+
+  <!-- ROOM -->
+  <div class="room">
+    <div class="slot"><span>P1</span><span id="s1">...</span></div>
+    <div class="slot"><span>P2</span><span id="s2">...</span></div>
+    <div class="slot"><span>P3</span><span id="s3">...</span></div>
+    <div class="slot"><span>P4</span><span id="s4">...</span></div>
+  </div>
+
+  <!-- INPUT -->
+  <div class="input-card">
+    <input id="guess" placeholder="Masukkan prediksi harga">
+    <button onclick="startGame()">START MATCH</button>
+  </div>
+
+  <div class="result" id="result"></div>
+
 </div>
-
-<div id="price">$0</div>
-
-<!-- ROOM -->
-<div class="room">
-  <div class="slot" id="slot1">P1: Waiting...</div>
-  <div class="slot" id="slot2">P2: Waiting...</div>
-  <div class="slot" id="slot3">P3: Waiting...</div>
-  <div class="slot" id="slot4">P4: Waiting...</div>
-</div>
-
-<!-- INPUT -->
-<div class="players">
-  <div class="player">You <input id="guess"></div>
-</div>
-
-<div class="controls">
-  <button class="start" onclick="startGame()">START MATCH</button>
-</div>
-
-<h3 id="result" style="text-align:center;"></h3>
 
 <script>
-// ===== FAKE ROOM JOIN =====
+// ===== ROOM =====
 const names = ["Rizky","Andi","Budi","Doni","Fajar"];
 
-function fillRoom() {
+function fillRoom(){
   for(let i=1;i<=4;i++){
-    let name = names[Math.floor(Math.random()*names.length)];
-    document.getElementById("slot"+i).innerText =
-      "P"+i+": "+name;
+    document.getElementById("s"+i).innerText =
+      names[Math.floor(Math.random()*names.length)];
   }
 }
 fillRoom();
 
-// ===== REAL PRICE =====
+// ===== PRICE (REAL) =====
 let price = 0;
 let ws = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@trade");
 
@@ -133,21 +179,41 @@ ws.onmessage = (e)=>{
   price = parseFloat(data.p);
 
   document.getElementById("price").innerText =
-    "$"+price.toFixed(2);
+    "$" + price.toFixed(2);
+
+  updateChart(price);
 };
 
+// ===== CHART =====
+const ctx = document.getElementById("chart").getContext("2d");
+let x = 0;
+
+function updateChart(p){
+  ctx.lineTo(x,150 - (p % 1000)/5);
+  ctx.strokeStyle = "#22c55e";
+  ctx.stroke();
+  x += 2;
+
+  if(x > 400){
+    ctx.clearRect(0,0,400,150);
+    ctx.beginPath();
+    ctx.moveTo(0,75);
+    x = 0;
+  }
+}
+
 // ===== GAME =====
-let running = false;
-let time = 30;
+let running=false;
+let time=30;
 
 function startGame(){
   if(running) return;
 
-  running = true;
-  time = 30;
+  running=true;
+  time=30;
   document.getElementById("result").innerText="";
 
-  let fakeGuesses = [
+  let fake = [
     Math.random()*price,
     Math.random()*price,
     Math.random()*price
@@ -155,19 +221,17 @@ function startGame(){
 
   let timer = setInterval(()=>{
     time--;
-    document.getElementById("timer").innerText = time;
+    document.getElementById("timer").innerText = time+"s";
 
-    if(time <= 0){
+    if(time<=0){
       running=false;
       clearInterval(timer);
-      endGame(fakeGuesses);
+      endGame(fake);
     }
   },1000);
 }
 
 function endGame(fake){
-  let finalPrice = price;
-
   let players = [
     {name:"You", val:parseFloat(guess.value)},
     {name:"P2", val:fake[0]},
@@ -176,16 +240,14 @@ function endGame(fake){
   ];
 
   players.forEach(p=>{
-    p.diff = Math.abs(p.val - finalPrice);
+    p.diff = Math.abs(p.val - price);
   });
 
   players.sort((a,b)=>a.diff-b.diff);
 
-  let winner = players[0];
-
   document.getElementById("result").innerText =
-    "Final: $" + finalPrice.toFixed(2) +
-    " | Winner: " + winner.name;
+    "Final $" + price.toFixed(2) +
+    " | Winner: " + players[0].name;
 }
 </script>
 
